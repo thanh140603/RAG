@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag_postgres_dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rag_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5433:5432" 
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: rag_backend_dev
+    environment:
+      ENVIRONMENT: dev
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      API_RELOAD: "true"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-rag_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      VECTOR_STORE_TYPE: ${VECTOR_STORE_TYPE:-pgvector}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-ragadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-ragadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-rag-documents}
+      MINIO_SECURE: "false"
+      MINIO_EXTERNAL_ENDPOINT: http://localhost:9000
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-8b-instant}
+      GROQ_BASE_URL: ${GROQ_BASE_URL:-https://api.groq.com/openai/v1}
+      HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      ENABLE_WEB_SEARCH: ${ENABLE_WEB_SEARCH:-false}
+      WEB_SEARCH_PROVIDER: ${WEB_SEARCH_PROVIDER:-tavily}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      SERPER_API_KEY: ${SERPER_API_KEY}
+      WEB_SEARCH_MAX_RESULTS: ${WEB_SEARCH_MAX_RESULTS:-3}
+      WEB_SEARCH_FALLBACK_THRESHOLD: ${WEB_SEARCH_FALLBACK_THRESHOLD:-0.5}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --reload-include "*.py" --reload-include "*.yaml" --reload-include "*.yml"
+
+  minio:
+    image: minio/minio:latest
+    container_name: rag_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ragadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ragadmin123}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: rag_frontend_dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: "true" 
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+  minio_data:
+

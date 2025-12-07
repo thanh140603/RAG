@@ -1,0 +1,99 @@
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# ============================================
+# Build outputs
+# ============================================
+dist/
+build/
+*.egg-info/
+*.dist-info/
+
+# ============================================
+# IDE & Editors
+# ============================================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================
+# Data & Storage
+# ============================================
+data/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+
+# Vector stores
+*.index
+*.faiss
+chroma_db/
+
+# ============================================
+# Temporary files
+# ============================================
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# ============================================
+# OS files
+# ============================================
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ============================================
+# Docker
+# ============================================
+.dockerignore
+
